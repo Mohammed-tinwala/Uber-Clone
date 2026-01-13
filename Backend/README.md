@@ -596,3 +596,345 @@ curl -X POST http://localhost:3000/captains/register \
 - Password field is not returned in the response for security
 - Email field is enforced as unique to prevent duplicate accounts
 - Captains start as 'inactive' and must be activated before accepting rides
+
+---
+
+# Captain Login API Documentation
+
+## Endpoint: `/captains/login`
+
+### Description
+This endpoint allows captains to log in to their existing Uber Clone account. It validates the provided email and password, compares the password against the stored hashed password, and returns an authentication token if credentials are valid. The token is set as a cookie and also returned in the response.
+
+---
+
+## Request Method
+**POST**
+
+---
+
+## Request Headers
+```
+Content-Type: application/json
+```
+
+---
+
+## Request Body
+
+The endpoint requires the following data in JSON format:
+
+```json
+{
+  "email": "string",
+  "password": "string"
+}
+```
+
+### Required Fields
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `email` | string | Required, valid email format | Captain's registered email address |
+| `password` | string | Required, minimum 6 characters | Captain's password |
+
+---
+
+## Response Codes
+
+### Success Response
+
+**Status Code: 200 OK**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "captain": {
+    "_id": "captain_id",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "john@example.com",
+    "socketId": null,
+    "status": "inactive",
+    "vehicle": {
+      "color": "black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "location": {
+      "lat": null,
+      "lng": null
+    }
+  }
+}
+```
+
+---
+
+### Error Responses
+
+**Status Code: 400 Bad Request**
+
+Returned when validation fails:
+
+```json
+{
+  "errors": [
+    {
+      "msg": "Invalid Email",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Status Code: 401 Unauthorized**
+
+Returned when email doesn't exist or password is incorrect:
+
+```json
+{
+  "message": "Invalid email or password"
+}
+```
+
+---
+
+## Example Request
+
+```bash
+curl -X POST http://localhost:3000/captains/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "SecurePassword123"
+  }'
+```
+
+---
+
+## Example Response (Success)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MzJhMWMyMTQwNWY0YzAwMWE4OGU0MjMiLCJpYXQiOjE2NjM3NTA0MTd9.kX3...",
+  "captain": {
+    "_id": "632a1c21405f4c001a88e423",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "john@example.com",
+    "socketId": null,
+    "status": "inactive",
+    "vehicle": {
+      "color": "black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "location": {
+      "lat": null,
+      "lng": null
+    },
+    "__v": 0
+  }
+}
+```
+
+---
+
+## Validation Rules
+
+- **Email**: Must be a valid email format
+- **Password**: Required field, minimum 6 characters
+- **Email validation**: Captain must exist in the database
+- **Password validation**: Must match the stored hashed password
+
+---
+
+## Security Notes
+
+- Passwords are compared using bcrypt's secure comparison method
+- Invalid credentials return a generic error message to prevent user enumeration attacks
+- JWT tokens are generated using the JWT_SECRET environment variable
+- Password field is not returned in the response for security
+- Token is set as an HTTP-only cookie for enhanced security
+- This endpoint uses proper authentication flow to prevent unauthorized access
+
+---
+
+# Captain Profile API Documentation
+
+## Endpoint: `/captains/profile`
+
+### Description
+Returns the authenticated captain's profile information including their vehicle details. Requires a valid JWT sent either as a `token` cookie or in the `Authorization` header (`Bearer <token>`). The response does not include the captain's password.
+
+---
+
+## Request Method
+**GET**
+
+---
+
+## Request Headers
+```
+Cookie: token=<jwt>
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+---
+
+## Response Codes
+
+### Success Response
+
+**Status Code: 200 OK**
+
+```json
+{
+  "_id": "captain_id",
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "email": "john@example.com",
+  "socketId": null,
+  "status": "inactive",
+  "vehicle": {
+    "color": "black",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  },
+  "location": {
+    "lat": null,
+    "lng": null
+  }
+}
+```
+
+---
+
+### Error Responses
+
+**Status Code: 401 Unauthorized**
+
+Returned when authentication is missing or the token is invalid:
+
+```json
+{
+  "message": "Authentication failed"
+}
+```
+
+---
+
+## Example Requests
+
+Using `Authorization` header:
+
+```bash
+curl -X GET http://localhost:3000/captains/profile \
+  -H "Authorization: Bearer <token>"
+```
+
+Using cookie:
+
+```bash
+curl -X GET http://localhost:3000/captains/profile \
+  --cookie "token=<token>"
+```
+
+---
+
+## Security Notes
+
+- Requires valid JWT authentication
+- Password field is excluded from response
+- Captain vehicle information is included in profile
+- Status reflects whether captain is active or inactive
+
+---
+
+# Captain Logout API Documentation
+
+## Endpoint: `/captains/logout`
+
+### Description
+Logs out the authenticated captain by clearing the `token` cookie and adding the token to the blacklist (stored for 24 hours). Accepts the JWT via cookie or `Authorization` header. Requires authentication.
+
+---
+
+## Request Method
+**GET**
+
+---
+
+## Request Headers
+```
+Cookie: token=<jwt>
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+---
+
+## Response Codes
+
+### Success Response
+
+**Status Code: 200 OK**
+
+```json
+{
+  "message": "Captain Logout Successfully"
+}
+```
+
+---
+
+### Error Responses
+
+**Status Code: 401 Unauthorized**
+
+Returned when authentication is missing or the token is invalid:
+
+```json
+{
+  "message": "Authentication failed"
+}
+```
+
+---
+
+## Example Requests
+
+Using `Authorization` header:
+
+```bash
+curl -X GET http://localhost:3000/captains/logout \
+  -H "Authorization: Bearer <token>"
+```
+
+Or with cookie:
+
+```bash
+curl -X GET http://localhost:3000/captains/logout \
+  --cookie "token=<token>"
+```
+
+---
+
+## Security Notes
+
+- Requires valid JWT authentication
+- Logout blacklists the token in `BlacklistToken` collection which expires after 24 hours
+- Token cookie is cleared immediately upon logout
+- Clients should remove stored tokens on logout and handle 401 responses by redirecting to login
